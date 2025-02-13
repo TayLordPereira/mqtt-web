@@ -3,6 +3,7 @@ import ssl
 import paho.mqtt.client as mqtt
 import websockets
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
 import uvicorn
 
 # Configuração do Broker MQTT
@@ -15,9 +16,10 @@ PASSWORD = "Dicewebbroker1"
 # Criar a aplicação FastAPI para o Render detectar a porta aberta
 app = FastAPI()
 
+# Servir o arquivo HTML principal
 @app.get("/")
-def read_root():
-    return {"status": "Servidor MQTT WebSocket rodando!"}
+def serve_index():
+    return FileResponse("index.html")
 
 # Lista de clientes WebSocket conectados
 connected_clients = set()
