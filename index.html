@@ -15,11 +15,11 @@
     <p id="data">Aguardando...</p>
 
     <script>
-        // Configuração do Broker MQTT
+        // Configuração do Broker MQTT via WebSocket (HiveMQ Cloud)
         const broker = "wss://7f054615a7ef47f78f9f2892dbc87eac.s1.eu.hivemq.cloud:8884/mqtt";
         const options = {
-            username: "SEU_USUARIO", // Substitua pelo seu usuário do HiveMQ Cloud
-            password: "SUA_SENHA",   // Substitua pela sua senha do HiveMQ Cloud
+            username: "dicewebbroker",  // Seu usuário do HiveMQ Cloud
+            password: "Dicewebbroker1", // Sua senha do HiveMQ Cloud
             connectTimeout: 4000,
             clean: true,
             clientId: "web_client_" + Math.random().toString(16).substr(2, 8)
@@ -29,10 +29,10 @@
         const client = mqtt.connect(broker, options);
 
         client.on("connect", function () {
-            console.log("Conectado ao MQTT Broker!");
+            console.log("✅ Conectado ao MQTT Broker!");
             client.subscribe("dice", function (err) {
                 if (!err) {
-                    console.log("Inscrito no tópico: dice");
+                    console.log("📡 Inscrito no tópico: dice");
                 }
             });
         });
@@ -40,12 +40,8 @@
         // Quando uma mensagem chega, atualiza o HTML
         client.on("message", function (topic, message) {
             document.getElementById("data").innerText = message.toString();
-            console.log("Mensagem Recebida:", message.toString());
+            console.log("📩 Mensagem Recebida:", message.toString());
         });
 
         client.on("error", function (error) {
-            console.error("Erro na conexão MQTT:", error);
-        });
-    </script>
-</body>
-</html>
+            console.error("❌ Erro na conexão MQTT:",
