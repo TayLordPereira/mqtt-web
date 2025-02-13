@@ -2,7 +2,7 @@ import asyncio
 import ssl
 import paho.mqtt.client as mqtt
 import websockets
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket
 from fastapi.responses import FileResponse
 import uvicorn
 
@@ -13,7 +13,7 @@ TOPIC = "dice"
 USERNAME = "dicewebbroker"
 PASSWORD = "Dicewebbroker1"
 
-# Criar a aplicação FastAPI para o Render detectar a porta aberta
+# Criar a aplicação FastAPI
 app = FastAPI()
 
 # Servir o arquivo HTML principal
@@ -24,16 +24,30 @@ def serve_index():
 # Lista de clientes WebSocket conectados
 connected_clients = set()
 
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    connected_clients.add(websocket)
+    print("✅ Novo cliente conectado ao WebSocket")
+
+    try:
+        while True:
+            await asyncio.sleep(1)  # Mantém a conexão aberta
+    except Exception as e:
+        print(f"🔌 Cliente desconectado: {e}")
+    finally:
+        connected_clients.remove(websocket)
+
 # Callback quando uma mensagem MQTT chega
 def on_message(client, userdata, message):
     msg = message.payload.decode()
     print(f"📩 Recebido MQTT: {msg}")
-    loop = asyncio.get_event_loop()
-    loop.create_task(send_to_websocket_clients(msg))
+    asyncio.run_coroutine_threadsafe(send_to_websocket_clients(msg), asyncio.get_event_loop())
 
 async def send_to_websocket_clients(msg):
     if connected_clients:
-        await asyncio.gather(*(client.send(msg) for client in connected_clients))
+        print(f"📡 Enviando para {len(connected_clients)} clientes WebSocket")
+        await asyncio.gather(*(client.send_text(msg) for client in connected_clients))
 
 # Configuração do Cliente MQTT via WebSocket
 client = mqtt.Client(transport="websockets")
@@ -45,30 +59,6 @@ client.connect(BROKER, PORT, 60)
 client.subscribe(TOPIC)
 client.loop_start()
 
-# Servidor WebSocket
-async def websocket_handler(websocket, path):
-    connected_clients.add(websocket)
-    try:
-        async for message in websocket:
-            pass
-    finally:
-        connected_clients.remove(websocket)
-
-async def start_websocket():
-    print("✅ Iniciando WebSocket Server na porta 8765")
-    server = await websockets.serve(websocket_handler, "0.0.0.0", 8765)
-    await server.wait_closed()
-
-# Ajuste para rodar FastAPI e WebSockets corretamente no Render
-def start_services():
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    
-    # Iniciar WebSockets em uma thread separada
-    loop.create_task(start_websocket())
-
-    # Rodar FastAPI no Render
-    uvicorn.run(app, host="0.0.0.0", port=10000)
-
+# Iniciar FastAPI
 if __name__ == "__main__":
-    start_services()
+    uvicorn.run(app, host="0.0.0.0", port=10000)
