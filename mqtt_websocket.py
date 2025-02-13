@@ -26,7 +26,8 @@ connected_clients = set()
 def on_message(client, userdata, message):
     msg = message.payload.decode()
     print(f"📩 Recebido MQTT: {msg}")
-    asyncio.run(send_to_websocket_clients(msg))
+    loop = asyncio.get_event_loop()
+    loop.create_task(send_to_websocket_clients(msg))
 
 async def send_to_websocket_clients(msg):
     if connected_clients:
@@ -51,16 +52,21 @@ async def websocket_handler(websocket, path):
     finally:
         connected_clients.remove(websocket)
 
-# Iniciar o Servidor WebSocket
 async def start_websocket():
+    print("✅ Iniciando WebSocket Server na porta 8765")
     server = await websockets.serve(websocket_handler, "0.0.0.0", 8765)
     await server.wait_closed()
 
-# Iniciar Servidor Web e WebSocket em paralelo
-async def main():
-    websocket_task = asyncio.create_task(start_websocket())
-    api_task = asyncio.create_task(uvicorn.run(app, host="0.0.0.0", port=10000))
-    await asyncio.gather(websocket_task, api_task)
+# Ajuste para rodar FastAPI e WebSockets corretamente no Render
+def start_services():
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    
+    # Iniciar WebSockets em uma thread separada
+    loop.create_task(start_websocket())
+
+    # Rodar FastAPI no Render
+    uvicorn.run(app, host="0.0.0.0", port=10000)
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    start_services()
