@@ -1,3 +1,9 @@
 paho-mqtt
 websockets
 asyncio
+paho-mqtt
+websockets
+asyncio
+fastapi
+uvicorn
+
