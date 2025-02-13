@@ -1,14 +1,12 @@
 import asyncio
 import ssl
 import paho.mqtt.client as mqtt
-import websockets
 from fastapi import FastAPI, WebSocket
 from fastapi.responses import FileResponse
 import uvicorn
 
-# Configuração do Broker MQTT
-BROKER = "7f054615a7ef47f78f9f2892dbc87eac.s1.eu.hivemq.cloud"
-PORT = 8884  # Porta WebSocket MQTT
+# Configuração do Broker MQTT via WebSockets
+BROKER_WS = "wss://7f054615a7ef47f78f9f2892dbc87eac.s1.eu.hivemq.cloud:8884/mqtt"
 TOPIC = "dice"
 USERNAME = "dicewebbroker"
 PASSWORD = "Dicewebbroker1"
@@ -16,7 +14,6 @@ PASSWORD = "Dicewebbroker1"
 # Criar a aplicação FastAPI
 app = FastAPI()
 
-# Servir o arquivo HTML principal
 @app.get("/")
 def serve_index():
     return FileResponse("index.html")
@@ -42,22 +39,36 @@ async def websocket_endpoint(websocket: WebSocket):
 def on_message(client, userdata, message):
     msg = message.payload.decode()
     print(f"📩 Recebido MQTT: {msg}")
-    asyncio.run_coroutine_threadsafe(send_to_websocket_clients(msg), asyncio.get_event_loop())
+
+    # Enviar mensagem para os clientes WebSocket
+    loop = asyncio.get_event_loop()
+    loop.create_task(send_to_websocket_clients(msg))
 
 async def send_to_websocket_clients(msg):
     if connected_clients:
         print(f"📡 Enviando para {len(connected_clients)} clientes WebSocket")
         await asyncio.gather(*(client.send_text(msg) for client in connected_clients))
 
-# Configuração do Cliente MQTT via WebSocket
-client = mqtt.Client(transport="websockets")
+# Configuração do Cliente MQTT via WebSockets
+client = mqtt.Client(client_id="web_client", transport="websockets")
 client.username_pw_set(USERNAME, PASSWORD)
 client.tls_set(cert_reqs=ssl.CERT_NONE)
+
+def on_connect(client, userdata, flags, rc):
+    if rc == 0:
+        print("✅ Conectado ao MQTT Broker via WebSockets!")
+        client.subscribe(TOPIC)
+    else:
+        print(f"❌ Erro ao conectar: {rc}")
+
+client.on_connect = on_connect
 client.on_message = on_message
 
-client.connect(BROKER, PORT, 60)
-client.subscribe(TOPIC)
-client.loop_start()
+try:
+    client.connect(BROKER_WS, 8884, 60)
+    client.loop_start()
+except Exception as e:
+    print(f"❌ Erro ao conectar via WebSockets: {e}")
 
 # Iniciar FastAPI
 if __name__ == "__main__":
