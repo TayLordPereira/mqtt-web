@@ -1,41 +1,26 @@
-import asyncio
-import websockets
 import paho.mqtt.client as mqtt
+import ssl
 
 # Configuração do Broker MQTT
-BROKER = "hivemq.cloud"
-PORT = 1883
+BROKER = "7f054615a7ef47f78f9f2892dbc87eac.s1.eu.hivemq.cloud"
+PORT = 8883
 TOPIC = "dice"
+USERNAME = "dicewebbroker"
+PASSWORD = "Dicewebbroker1"
 
-# Lista de clientes WebSocket conectados
-connected_clients = set()
+# Configurar cliente MQTT com autenticação e TLS
+def on_connect(client, userdata, flags, rc):
+    if rc == 0:
+        print("✅ Conectado ao MQTT Broker!")
+        client.subscribe(TOPIC)
+    else:
+        print(f"❌ Erro ao conectar, código: {rc}")
 
-# Callback quando uma mensagem MQTT chega
-def on_message(client, userdata, message):
-    msg = message.payload.decode()
-    print(f"Recebido MQTT: {msg}")
-    asyncio.run(send_to_websocket_clients(msg))
+client = mqtt.Client()
+client.username_pw_set(USERNAME, PASSWORD)
+client.tls_set(cert_reqs=ssl.CERT_NONE)  # Usa TLS sem verificação de certificado
+client.on_connect = on_connect
 
-async def send_to_websocket_clients(msg):
-    if connected_clients:
-        await asyncio.gather(*(client.send(msg) for client in connected_clients))
+client.connect(BROKER, PORT, 60)
 
-# Configuração do Cliente MQTT
-mqtt_client = mqtt.Client()
-mqtt_client.on_message = on_message
-mqtt_client.connect(BROKER, PORT, 60)
-mqtt_client.subscribe(TOPIC)
-mqtt_client.loop_start()
-
-# Servidor WebSocket
-async def websocket_handler(websocket, path):
-    connected_clients.add(websocket)
-    try:
-        async for message in websocket:
-            pass  # WebSocket escutando MQTT
-    finally:
-        connected_clients.remove(websocket)
-
-start_server = websockets.serve(websocket_handler, "0.0.0.0", 8765)
-asyncio.get_event_loop().run_until_complete(start_server)
-asyncio.get_event_loop().run_forever()
+client.loop_forever()
