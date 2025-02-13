@@ -5,6 +5,17 @@ from fastapi import FastAPI, WebSocket
 from fastapi.responses import FileResponse
 import uvicorn
 
+
+import socket
+
+try:
+    print("🔍 Testando resolução de DNS...")
+    ip = socket.gethostbyname("7f054615a7ef47f78f9f2892dbc87eac.s1.eu.hivemq.cloud")
+    print(f"✅ Resolução de DNS bem-sucedida: {ip}")
+except socket.gaierror:
+    print("❌ Erro: Não foi possível resolver o nome do host MQTT!")
+
+
 # Configuração do Broker MQTT via WebSockets
 BROKER_WS = "wss://7f054615a7ef47f78f9f2892dbc87eac.s1.eu.hivemq.cloud:8884/mqtt"
 TOPIC = "dice"
