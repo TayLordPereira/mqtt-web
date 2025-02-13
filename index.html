@@ -1,20 +1,38 @@
-<script>
-    const socket = new WebSocket("wss://mqtt-web.onrender.com/ws");
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <title>Leitor MQTT</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
+        h1 { color: #333; }
+        #data { font-size: 2em; font-weight: bold; color: blue; }
+    </style>
+</head>
+<body>
+    <h1>Último Número Recebido</h1>
+    <p id="data">Aguardando...</p>
 
-    socket.onopen = function() {
-        console.log("✅ Conectado ao WebSocket!");
-    };
-
-    socket.onmessage = function(event) {
-        document.getElementById("data").innerText = event.data;
-        console.log("📩 Mensagem Recebida:", event.data);
-    };
-
-    socket.onerror = function(error) {
-        console.error("❌ Erro na conexão WebSocket:", error);
-    };
-
-    socket.onclose = function() {
-        console.log("🔌 WebSocket desconectado.");
-    };
-</script>
+    <script>
+        const socket = new WebSocket("wss://mqtt-web.onrender.com/ws");
+    
+        socket.onopen = function() {
+            console.log("✅ Conectado ao WebSocket!");
+        };
+    
+        socket.onmessage = function(event) {
+            document.getElementById("data").innerText = event.data;
+            console.log("📩 Mensagem Recebida:", event.data);
+        };
+    
+        socket.onerror = function(error) {
+            console.error("❌ Erro na conexão WebSocket:", error);
+        };
+    
+        socket.onclose = function() {
+            console.log("🔌 WebSocket desconectado.");
+        };
+    </script>
+    
+</body>
+</html>
